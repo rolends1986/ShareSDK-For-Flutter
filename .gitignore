@@ -28,3 +28,5 @@ build/
 bin/
 gen/
 out/
+sharesdk_plugin/example/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+sharesdk_plugin/example/ios/Flutter/flutter_export_environment.sh
