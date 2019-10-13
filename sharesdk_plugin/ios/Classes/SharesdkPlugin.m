@@ -27,6 +27,9 @@ typedef NS_ENUM(NSUInteger, PluginMethod) {
 @implementation SharesdkPlugin
 
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
+    
+    
+    [self registrarSdk];
     FlutterMethodChannel* channel = [FlutterMethodChannel
                                      methodChannelWithName:@"com.yoozoo.mob/sharesdk"
                                      binaryMessenger:[registrar messenger]];
@@ -46,6 +49,17 @@ typedef NS_ENUM(NSUInteger, PluginMethod) {
                            @"isClientInstalled":@(PluginMethodIsClientInstalled)
                            };
     [registrar addMethodCallDelegate:instance channel:channel];
+}
+
++(void)registrarSdk{
+     [ShareSDK registPlatforms:^(SSDKRegister *platformsRegister) {
+                //QQ
+                [platformsRegister setupQQWithAppId:@"101511197" appkey:@"f353d06b16b5fcdc3c5e0e57614c1285"];
+                //微信
+                [platformsRegister setupWeChatWithAppId:@"wx204360234eb15797" appSecret:@"70e607569b5895af2c5304aa1a263048"];
+                //SMS
+                [platformsRegister setupSMSOpenCountryList:NO];
+            }];
 }
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
