@@ -2,10 +2,12 @@ package com.yoozoo.sharesdk;
 
 import android.text.TextUtils;
 import android.util.Log;
+
 import com.mob.MobSDK;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -26,7 +28,7 @@ import io.flutter.plugin.common.PluginRegistry;
  * SharesdkPlugin
  */
 public class SharesdkPlugin implements MethodCallHandler {
-
+    private static PluginRegistry.Registrar registrar = null;
     private static final String PluginMethodGetVersion = "getVersion";
     private static final String PluginMethodShare = "share";
     private static final String PluginMethodAuth = "auth";
@@ -49,6 +51,7 @@ public class SharesdkPlugin implements MethodCallHandler {
      * Plugin registration.
      */
     public static void registerWith(PluginRegistry.Registrar registrar) {
+        SharesdkPlugin.registrar = registrar;
         final MethodChannel channel = new MethodChannel(registrar.messenger(), "com.yoozoo.mob/sharesdk");
         channel.setMethodCallHandler(new SharesdkPlugin());
 
@@ -100,14 +103,18 @@ public class SharesdkPlugin implements MethodCallHandler {
         }
     }
 
-    /** 获取版本 **/
+    /**
+     * 获取版本
+     **/
     private void getVersion(MethodCall call, Result result) {
         Map<String, Object> map = new HashMap<>();
         map.put("版本号", "3.6.6");
         result.success(map);
     }
 
-    /** 分享 **/
+    /**
+     * 分享
+     **/
     private void shareWithArgs(MethodCall call, final Result result) {
         String imageUrl = "";
         String imagePath = "";
@@ -138,7 +145,7 @@ public class SharesdkPlugin implements MethodCallHandler {
 
         HashMap<String, Object> params = (HashMap<String, Object>) map.get("params");
 
-        HashMap<String, Object> platMap = (HashMap<String, Object>) params.get("@platform(" + num +")" );
+        HashMap<String, Object> platMap = (HashMap<String, Object>) params.get("@platform(" + num + ")");
         if (platMap == null) {
             imageUrl = String.valueOf(params.get("imageUrl_android"));
             imagePath = String.valueOf(params.get("imagePath_android"));
@@ -330,14 +337,16 @@ public class SharesdkPlugin implements MethodCallHandler {
         platform.share(shareParams);
     }
 
-    /** 打开微信小程序 **/
+    /**
+     * 打开微信小程序
+     **/
     private void openMinProgramWithArgs(MethodCall call, Result result) {
         HashMap<String, Object> map = call.arguments();
         //int type =Integer.valueOf(map.get("type"));
         String typeStr = String.valueOf(map.get("type"));
         int type = Integer.valueOf(typeStr);
-        String path =String.valueOf(map.get("path"));
-        String userName =String.valueOf(map.get("userName"));
+        String path = String.valueOf(map.get("path"));
+        String userName = String.valueOf(map.get("userName"));
 
         Platform wexin = ShareSDK.getPlatform("Wechat");
         Platform.ShareParams sp = new Platform.ShareParams();
@@ -350,7 +359,9 @@ public class SharesdkPlugin implements MethodCallHandler {
 
     }
 
-    /** 分享微信小程序 **/
+    /**
+     * 分享微信小程序
+     **/
     private void shareMiniProgramWithArgs(MethodCall call, Result result) {
         HashMap<String, Object> map = call.arguments();
         String num = String.valueOf(map.get("platform"));
@@ -382,7 +393,9 @@ public class SharesdkPlugin implements MethodCallHandler {
         Log.e("SharesdkPlugin", " plat " + platform + " ====> " + call.arguments.toString());
     }
 
-    /** 授权 **/
+    /**
+     * 授权
+     **/
     private void authWithArgs(MethodCall call, Result result) {
         HashMap<String, Object> params = call.arguments();
         String num = String.valueOf(params.get("platform"));
@@ -404,9 +417,15 @@ public class SharesdkPlugin implements MethodCallHandler {
                 @Override
                 public void onComplete(Platform platform, int i, HashMap<String, Object> hashMap) {
                     try {
-                        Map<String, Object> map = new HashMap<>();
+                        final Map<String, Object> map = new HashMap<>();
                         map.put("state", 1);
-                        result.success(map);
+                        registrar.activity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                result.success(map);
+                            }
+                        });
+
                         Log.e(TAG, "doAuthorize onComplete()===> " + map);
                     } catch (Throwable t) {
                         Log.e(TAG, "doAuthorize onComplete() catch===> " + t);
@@ -415,7 +434,7 @@ public class SharesdkPlugin implements MethodCallHandler {
 
                 @Override
                 public void onError(Platform platform, int i, Throwable throwable) {
-                    Map<String, Object> map = new HashMap<>();
+                    final Map<String, Object> map = new HashMap<>();
                     map.put("state", 2);
                     HashMap<String, Object> errorMap = new HashMap<>();
 
@@ -427,15 +446,25 @@ public class SharesdkPlugin implements MethodCallHandler {
                         errorMap.put("error", String.valueOf(throwable));
                     }
                     map.put("error", errorMap);
-                    result.success(map);
+                    registrar.activity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            result.success(map);
+                        }
+                    });
                     Log.e(TAG, "doAuthorize onError()===> " + map);
                 }
 
                 @Override
                 public void onCancel(Platform platform, int i) {
-                    Map<String, Object> map = new HashMap<>();
+                    final Map<String, Object> map = new HashMap<>();
                     map.put("state", 3);
-                    result.success(map);
+                    registrar.activity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            result.success(map);
+                        }
+                    });
                     Log.e(TAG, "doAuthorize onCancel()===> " + map);
                     //result.error(null, null, map);
                 }
@@ -445,7 +474,9 @@ public class SharesdkPlugin implements MethodCallHandler {
         }
     }
 
-    /** 取消授权 **/
+    /**
+     * 取消授权
+     **/
     private void cancelAuth(MethodCall call, Result result) {
         String platStr = Utils.platName(String.valueOf(call.arguments()));
         Platform platform = ShareSDK.getPlatform(platStr);
@@ -469,37 +500,56 @@ public class SharesdkPlugin implements MethodCallHandler {
         }
     }
 
-    /** 判断是否授权 **/
-    private void hasAuthed(MethodCall call, Result result) {
+    /**
+     * 判断是否授权
+     **/
+    private void hasAuthed(MethodCall call, final Result result) {
         String platStr = Utils.platName(String.valueOf(call.arguments));
         Platform platform = ShareSDK.getPlatform(platStr);
         if (platform != null) {
             if (platform.isAuthValid()) {
-                Map<String, Object> map = new HashMap<>();
+                final Map<String, Object> map = new HashMap<>();
                 map.put("state", 1);
                 HashMap<String, Object> reMap = new HashMap<>();
                 reMap.put("true", "授权了");
                 map.put("user", reMap);
-                result.success(map);
+                registrar.activity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        result.success(map);
+                    }
+                });
             } else {
-                Map<String, Object> map = new HashMap<>();
+                final Map<String, Object> map = new HashMap<>();
                 map.put("state", 2);
                 HashMap<String, Object> reMap = new HashMap<>();
                 reMap.put("false", "没有授权");
                 map.put("error", reMap);
-                result.success(map);
+                registrar.activity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        result.success(map);
+                    }
+                });
             }
         } else {
-            HashMap<String, Object> map = new HashMap<>();
+            final HashMap<String, Object> map = new HashMap<>();
             map.put("state", 2);
             HashMap<String, Object> errorMap = new HashMap<>();
             errorMap.put("error", "平台为空");
             map.put("error", errorMap);
-            result.success(map);
+            registrar.activity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    result.success(map);
+                }
+            });
         }
     }
 
-    /** 分享菜单 **/
+    /**
+     * 分享菜单
+     **/
     private void showMenuWithArgs(MethodCall call, Result result) {
         HashMap<String, Object> map = call.arguments();
         HashMap<String, Object> params = (HashMap<String, Object>) map.get("params");
@@ -551,7 +601,9 @@ public class SharesdkPlugin implements MethodCallHandler {
         Log.e("SharesdkPlugin", call.arguments.toString());
     }
 
-    /** 获得用户信息 **/
+    /**
+     * 获得用户信息
+     **/
     private void getUserInfoWithArgs(MethodCall call, Result result) {
         HashMap<String, Object> params = call.arguments();
         String num = String.valueOf(params.get("platform"));
@@ -562,7 +614,7 @@ public class SharesdkPlugin implements MethodCallHandler {
     }
 
 
-    private void doUserInfo(Platform platform,final Result result) {
+    private void doUserInfo(Platform platform, final Result result) {
         if (platform != null) {
             platform.showUser(null);
             //add 2019.06.13
@@ -573,7 +625,7 @@ public class SharesdkPlugin implements MethodCallHandler {
             platform.setPlatformActionListener(new PlatformActionListener() {
                 @Override
                 public void onComplete(Platform platform, int i, HashMap<String, Object> hashMap) {
-                    HashMap<String, Object> userMap = new HashMap<>();
+                    final HashMap<String, Object> userMap = new HashMap<>();
 
                     if (platform.getDb().exportData() != null) {
                         hashMap.clear();
@@ -583,13 +635,19 @@ public class SharesdkPlugin implements MethodCallHandler {
                     }
                     userMap.put("user", hashMap);
                     userMap.put("state", 1);
-                    result.success(userMap);
+                    registrar.activity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            result.success(userMap);
+                        }
+                    });
+
                     Log.e(TAG, "doUserInfo onComplete" + userMap);
                 }
 
                 @Override
                 public void onError(Platform platform, int i, Throwable throwable) {
-                    HashMap<String, Object> map = new HashMap<>();
+                    final HashMap<String, Object> map = new HashMap<>();
                     map.put("state", 2);
 
                     HashMap<String, Object> errorMap = new HashMap<>();
@@ -602,16 +660,27 @@ public class SharesdkPlugin implements MethodCallHandler {
                         errorMap.put("error", String.valueOf(throwable));
                     }
                     map.put("error", errorMap);
-                    result.success(map);
+                    registrar.activity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            result.success(map);
+                        }
+                    });
+
                     //result.error(null, null, map);
                     Log.e(TAG, "doUserInfo onError" + map);
                 }
 
                 @Override
                 public void onCancel(Platform platform, int i) {
-                    Map<String, Object> map = new HashMap<>();
+                    final Map<String, Object> map = new HashMap<>();
                     map.put("state", 3);
-                    result.success(map);
+                    registrar.activity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            result.success(map);
+                        }
+                    });
                     //result.error(null, null, map);
                     Log.e(TAG, "doUserInfo onCancel" + map);
                 }
