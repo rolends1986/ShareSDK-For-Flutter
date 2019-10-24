@@ -169,16 +169,45 @@ typedef NS_ENUM(NSUInteger, PluginMethod) {
         result([self _covertError:error]);
     }];
 }
-
+-(NSString *)convertToJsonData:(NSDictionary *)dict
+{
+    NSError *error;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:dict options:NSJSONWritingPrettyPrinted error:&error];
+    NSString *jsonString;
+    
+    if (!jsonData) {
+        NSLog(@"%@",error);
+    }else{
+        jsonString = [[NSString alloc]initWithData:jsonData encoding:NSUTF8StringEncoding];
+    }
+    
+    NSMutableString *mutStr = [NSMutableString stringWithString:jsonString];
+    //    NSRange range = {0,jsonString.length};
+    //    //去掉字符串中的空格
+    //    [mutStr replaceOccurrencesOfString:@" " withString:@"" options:NSLiteralSearch range:range];
+    NSRange range2 = {0,mutStr.length};
+    //去掉字符串中的换行符
+    [mutStr replaceOccurrencesOfString:@"\n" withString:@"" options:NSLiteralSearch range:range2];
+    
+    return mutStr;
+}
 - (void)_getUserInfoWithArgs:(NSDictionary *)args result:(FlutterResult)result
 {
     NSInteger type = [args[@"platform"] integerValue];
     [ShareSDK getUserInfo:type onStateChanged:^(SSDKResponseState state, SSDKUser *user, NSError *error) {
         if (state != SSDKResponseStateBegin)
         {
+            NSString* json=nil;
+            if(user.dictionaryValue!=nil && [user.dictionaryValue.allKeys containsObject:@"rawData"]){
+                NSDictionary* dataDic=(NSDictionary*)[user.dictionaryValue  valueForKey:@"rawData"];
+                if(dataDic!=nil){
+                    json= [self convertToJsonData:dataDic];
+                }
+                
+            }
             NSDictionary *dic = @{
                                   @"state":@(state),
-                                  @"user":user.dictionaryValue?:[NSNull null],
+                                  @"user":@{@"dbInfo":json},
                                   @"error":[self _covertError:error],
                                   };
             result(dic);
